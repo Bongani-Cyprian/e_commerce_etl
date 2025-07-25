@@ -1,0 +1,18 @@
+﻿[flake8]
+max-line-length = 88
+extend-ignore = E203, W503
+
+exclude =
+    .git,
+    __pycache__,
+    .venv,
+    data,
+    credentials,
+    docker-compose.yaml,
+    .github
+
+max-complexity = 10
+statistics = True
+
+per-file-ignores =
+    __init__.py:F401
