@@ -4,7 +4,9 @@ from airflow.operators.python import PythonOperator
 from datetime import datetime, timedelta
 
 # Point to GCP key in container
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/opt/airflow/gcp_credentials.json"
+os.environ[
+    "GOOGLE_APPLICATION_CREDENTIALS"
+] = "/opt/airflow/gcp_credentials.json"
 
 default_args = {
     "owner": "Zweli",
@@ -31,8 +33,14 @@ with DAG(
 
         df = pd.read_csv("/opt/airflow/data/store_sales.csv")
         client = bigquery.Client()
-        table = f"{client.project}.ecommerce_staging.store_sales"
-        client.load_table_from_dataframe(df, table).result()
+        table = (
+            f"{client.project}"
+            ".ecommerce_staging.store_sales"
+        )
+        client.load_table_from_dataframe(
+            df,
+            table,
+        ).result()
         print("✅ store_sales loaded")
 
     def load_product_details():
@@ -41,14 +49,29 @@ with DAG(
 
         df = pd.read_json("/opt/airflow/data/product_details.json")
         client = bigquery.Client()
-        table = f"{client.project}.ecommerce_staging.product_details"
-        client.load_table_from_dataframe(df, table).result()
+        table = (
+            f"{client.project}"
+            ".ecommerce_staging.product_details"
+        )
+        client.load_table_from_dataframe(
+            df,
+            table,
+        ).result()
         print("✅ product_details loaded")
 
-    task1 = PythonOperator(task_id="load_sales",    python_callable=load_store_sales)
-    task2 = PythonOperator(task_id="load_products", python_callable=load_product_details)
+    task1 = PythonOperator(
+        task_id="load_sales",
+        python_callable=load_store_sales,
+    )
 
-    from airflow.providers.google.cloud.operators.bigquery import BigQueryInsertJobOperator
+    task2 = PythonOperator(
+        task_id="load_products",
+        python_callable=load_product_details,
+    )
+
+    from airflow.providers.google.cloud.operators.bigquery import (
+        BigQueryInsertJobOperator,
+    )
 
     sql = """
     CREATE OR REPLACE TABLE ecommerce_staging.transformed_sales_data AS
@@ -60,8 +83,15 @@ with DAG(
     JOIN ecommerce_staging.product_details p
       ON s.product_id = p.product_id;
     """
+
     task3 = BigQueryInsertJobOperator(
-        task_id="transform", configuration={"query": {"query": sql, "useLegacySql": False}}
+        task_id="transform",
+        configuration={
+            "query": {
+                "query": sql,
+                "useLegacySql": False,
+            }
+        },
     )
 
     task1 >> task2 >> task3
