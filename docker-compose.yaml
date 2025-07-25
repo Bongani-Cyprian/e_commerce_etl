@@ -1,0 +1,68 @@
+services:
+  postgres:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 5s
+      retries: 5
+
+  redis:
+    image: redis:latest
+
+  airflow-webserver:
+    image: apache/airflow:2.7.2
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
+      AIRFLOW__CORE__FERNET_KEY: sS3f5x0Y7fN3QKpB4IhJmbjxH0aZF9Wl8YpUxV2_n3A=
+      AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+      _PIP_ADDITIONAL_REQUIREMENTS: pandas google-cloud-bigquery
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./data:/opt/airflow/data:ro
+      - ./credentials/gcp_credentials.json:/opt/airflow/gcp_credentials.json:ro
+    ports:
+      - "8080:8080"
+    command: webserver
+
+  airflow-scheduler:
+    image: apache/airflow:2.7.2
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
+      AIRFLOW__CORE__FERNET_KEY: sS3f5x0Y7fN3QKpB4IhJmbjxH0aZF9Wl8YpUxV2_n3A=
+      AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+      _PIP_ADDITIONAL_REQUIREMENTS: pandas google-cloud-bigquery
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./data:/opt/airflow/data:ro
+      - ./credentials/gcp_credentials.json:/opt/airflow/gcp_credentials.json:ro
+    command: scheduler
+
+  airflow-cli:
+    image: apache/airflow:2.7.2
+    depends_on:
+      - airflow-webserver
+      - airflow-scheduler
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
+      AIRFLOW__CORE__FERNET_KEY: sS3f5x0Y7fN3QKpB4IhJmbjxH0aZF9Wl8YpUxV2_n3A=
+      AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+      _PIP_ADDITIONAL_REQUIREMENTS: pandas google-cloud-bigquery
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./data:/opt/airflow/data:ro
+      - ./credentials/gcp_credentials.json:/opt/airflow/gcp_credentials.json:ro
+    entrypoint: ["bash", "-cx"]
+    command: ["sleep 10; airflow"]
