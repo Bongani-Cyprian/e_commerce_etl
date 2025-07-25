@@ -1,0 +1,4 @@
+﻿apache-airflow
+pandas
+google-cloud-bigquery
+pytest
