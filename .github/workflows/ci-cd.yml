@@ -12,18 +12,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+
       - name: Dump workspace
         run: |
           pwd
           ls -R .
+
       - uses: actions/setup-python@v4
         with:
           python-version: 3.11
-      - name: Install lint deps
+
+      - name: Install lint dependencies
         run: |
           pip install --upgrade pip
           pip install flake8 apache-airflow pandas google-cloud-bigquery
           pip install -r requirements.txt
+
       - name: Run flake8
         run: flake8 airflow/dags --max-line-length=88
 
@@ -33,25 +37,32 @@ jobs:
     env:
       AIRFLOW__CORE__LOAD_EXAMPLES: "False"
       AIRFLOW_HOME: ${{ github.workspace }}/airflow_home
+
     steps:
       - uses: actions/checkout@v3
+
       - name: Dump workspace
         run: |
           pwd
           ls -R .
+
       - name: Prepare AIRFLOW_HOME
         run: mkdir -p $AIRFLOW_HOME
+
       - uses: actions/setup-python@v4
         with:
           python-version: 3.11
-      - name: Install test deps
+
+      - name: Install test dependencies
         run: |
           pip install --upgrade pip
           pip install apache-airflow pytest
           pip install -r requirements.txt
+
       - name: Initialize Airflow DB
         run: airflow db init
-      - name: Run pytest
+
+      - name: Run tests
         run: pytest -q
 
   build:
@@ -59,6 +70,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+
       - name: Build Docker image
         run: docker build -t my-etl-image .
 
@@ -67,13 +79,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+
       - name: Authenticate with GCP
         uses: google-github-actions/auth@v1
         with:
           credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+
       - name: Configure Docker for GCR
         run: echo ${{ secrets.GCP_CREDENTIALS }} \
           | docker login -u _json_key --password-stdin https://gcr.io
+
       - name: Tag & push
         run: |
           IMAGE=gcr.io/${{ secrets.GCP_PROJECT_ID }}/my-etl-image:latest
@@ -88,22 +103,28 @@ jobs:
       GKE_CLUSTER: your-cluster-name
       GKE_ZONE: your-cluster-zone
       IMAGE: gcr.io/${{ secrets.GCP_PROJECT_ID }}/my-etl-image:latest
+
     steps:
       - uses: actions/checkout@v3
+
       - name: Authenticate with GCP
         uses: google-github-actions/auth@v1
         with:
           credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+
       - name: Set gcloud defaults
         run: |
           gcloud config set project $GCP_PROJECT_ID
           gcloud config set compute/zone $GKE_ZONE
+
       - name: Fetch GKE creds
         run: gcloud container clusters get-credentials $GKE_CLUSTER
+
       - name: Roll new image into deployments
         run: |
           kubectl set image deployment/etl-webserver etl-webserver=$IMAGE
           kubectl set image deployment/etl-scheduler etl-scheduler=$IMAGE
+
       - name: Wait for rollout
         run: |
           kubectl rollout status deployment/etl-webserver
@@ -117,8 +138,9 @@ jobs:
       AIRFLOW_USER: ${{ secrets.AIRFLOW_USER }}
       AIRFLOW_PASSWORD: ${{ secrets.AIRFLOW_PASSWORD }}
       DAG_ID: my_etl_dag
+
     steps:
-      - name: Trigger DAG run
+      - name: Trigger DAG run via REST
         run: |
           curl -X POST "$AIRFLOW_ENDPOINT/api/v1/dags/$DAG_ID/dagRuns" \
             -u "$AIRFLOW_USER:$AIRFLOW_PASSWORD" \
