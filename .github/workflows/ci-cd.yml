@@ -1,5 +1,3 @@
-# .github/workflows/ci-cd.yml
-
 name: CI/CD for Airflow ETL
 
 on:
@@ -46,7 +44,7 @@ jobs:
     env:
       AIRFLOW__CORE__SQL_ALCHEMY_CONN: "sqlite:///:memory:"
       AIRFLOW__CORE__LOAD_EXAMPLES: "False"
-      AIRFLOW_HOME: ${{ runner.workspace }}/airflow_home
+      AIRFLOW_HOME: ${{ github.workspace }}/airflow_home
 
     steps:
       - name: Checkout code
